@@ -9,6 +9,8 @@ parser.add_argument('inputf', type=str, metavar='', help='')
 
 A = parser.parse_args()
 
+ONLY_IMPLICIT = True
+
 pattern_split = re.compile(r'^_+$')
 pattern_type = re.compile(r'^_+.+_+$')
 
@@ -31,7 +33,7 @@ pattern_filename = re.compile(r'^wsj.+$')
 
 pattern_empty_line = re.compile(r'^#+$')
 
-def process_file(f):
+def process_file(f, fw):
     f = open(f, "r")
     # match explicit
     lines = [l.strip() for l in f]
@@ -42,7 +44,7 @@ def process_file(f):
         i += 1
         if pattern_split.match(line):
             if len(store_info) > 1:
-                process_unit(store_info)
+                process_unit(store_info, fw)
             store_info = []
         else:
             store_info.append(line)
@@ -62,17 +64,18 @@ def find_arg12(store_info):
     return [text1, text2]
 
 
-def process_unit(store_info):
+def process_unit(store_info, fw):
     if pattern_type.match(store_info[0]):
         relation = ""
         info_type = store_info[0]
         if pattern_explicit.match(info_type):
+            if ONLY_IMPLICIT:
+                return
             ind = find_first_start_at(0, pattern_sup1, store_info) if find_first_start_at(0, pattern_sup1, store_info) > 0 else find_first_start_at(0, pattern_arg1, store_info)
             relation = store_info[ind-1][(store_info[ind-1].rfind(',') + 1):].strip().split('.')
             if len(relation) > 2:
                 relation = relation[:2]
             relation = ".".join(relation)
-
         elif pattern_implicit.match(info_type):
             ind = find_first_start_at(0, pattern_sup1, store_info) if find_first_start_at(0, pattern_sup1, store_info) > 0 else find_first_start_at(0, pattern_arg1, store_info)
             relation = store_info[ind-1][(store_info[ind-1].rfind(',') + 1):].strip().split('.')
@@ -80,18 +83,24 @@ def process_unit(store_info):
                 relation = relation[:2]
             relation =  ".".join(relation)
         elif pattern_altlex.match(info_type):
+            if ONLY_IMPLICIT:
+                return
             ind = find_first_start_at(0, pattern_sup1, store_info) if find_first_start_at(0, pattern_sup1, store_info) > 0 else find_first_start_at(0, pattern_arg1, store_info)
             relation = store_info[ind-1][(store_info[ind-1].rfind(',') + 1):].strip().split('.')
             if len(relation) > 2:
                 relation = relation[:2]
             relation =  ".".join(relation)
         elif pattern_entrel.match(info_type):
+            if ONLY_IMPLICIT:
+                return
             relation = 'EntRel'
         elif pattern_norel.match(info_type):
+            if ONLY_IMPLICIT:
+                return
             relation = 'NoRel'
         finlist = find_arg12(store_info)
         finlist.append(relation)
-        print "||||".join(finlist)
+        fw.write("||||".join(finlist) + "\n")
 
 def find_first_start_at(start, pattern, store_info):
     for i in xrange(start, len(store_info)):
@@ -101,10 +110,29 @@ def find_first_start_at(start, pattern, store_info):
 
 
 if __name__ == '__main__':
+    f_train = open("train_imp", "w")
+    f_dev = open("dev_imp", "w")
+    f_test = open("test_imp", "w")
+
     for lists in os.listdir(A.inputf): 
         path = os.path.join(A.inputf, lists)
         if pattern_dd.match(lists):
+            section = int(lists)
+            fw = None
+            if section <= 1:
+                fw = f_dev
+            elif section <= 20:
+                fw = f_train
+            elif section <= 22:
+                fw = f_test
+            else:
+                continue
             for files in os.listdir(path):
                 file_path = os.path.join(path, files)
                 if pattern_filename.match(files):
-                    process_file(file_path)
+                    process_file(file_path, fw)
+
+    f_train.close()
+    f_dev.close()
+    f_test.close()
+
