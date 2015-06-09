@@ -47,7 +47,8 @@ def process_file(f, fw):
                 process_unit(store_info, fw)
             store_info = []
         else:
-            store_info.append(line)
+            if len(line.strip()) > 0:
+                store_info.append(line.strip())
 
         
     f.close()
@@ -100,6 +101,8 @@ def process_unit(store_info, fw):
             relation = 'NoRel'
         finlist = find_arg12(store_info)
         finlist.append(relation)
+        # if len(finlist[0]) == 0 or len(finlist[1]) == 0:
+        #     print store_info
         fw.write("||||".join(finlist) + "\n")
 
 def find_first_start_at(start, pattern, store_info):
