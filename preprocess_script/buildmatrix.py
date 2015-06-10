@@ -113,6 +113,7 @@ if __name__ == '__main__':
         if cnt[w] > 1:
             vol.get_or_add(w)
 
+    # print relations.dict, len(relations.dict)
 
     
 
