@@ -55,14 +55,14 @@ def gen_representation(dataset, vol, relations, throw_away=False):
             arg1.append(num)
 
         while len(arg1) < MAX_LENGTH:
-            arg1.append(1)
+            arg1.insert(0, 1)
 
         arg2 = []
         for num in num_arg2:
             arg2.append(num)
 
         while len(arg2) < MAX_LENGTH:
-            arg2.append(1)
+            arg2.insert(0, 1)
 
         if (throw_away) and (len(arg2) > MAX_LENGTH or len(arg1) > MAX_LENGTH):
             continue 
