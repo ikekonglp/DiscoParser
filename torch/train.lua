@@ -33,7 +33,7 @@ function train.train(network, criterion, data, target, g, rescale, config, state
       end
       optim.adadelta(func, x, state)
       rescale(x)
-      print("done")
+      
    end
 
    print("[EPOCH loss=", loss / total, 

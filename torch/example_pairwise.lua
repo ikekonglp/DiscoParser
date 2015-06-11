@@ -62,8 +62,8 @@ local target_data = make_cuda(f:read('train_label'):all())
 params.labels = target_data:max()
 target_data = target_data
 
-local n1 = math.min(train_data[1]:size(2), 30)
-local n2 = math.min(train_data[2]:size(2), 30)
+local n1 = math.min(train_data[1]:size(2), 5)
+local n2 = math.min(train_data[2]:size(2), 5)
 local align = torch.ones(train_data[1]:size(1), 2*n1 * n2):float()
 
 local n = 1
@@ -71,7 +71,7 @@ for i = 1, n1 do
    for j = 1, n2 do 
       align[{{}, n}]:copy(train_data[1][{{}, i}])
       n = n + 1
-      align[{{}, n}]:copy(train_data[2][{{}, j}]) 
+      align[{{}, n}]:copy(train_data[2][{{}, j}] + params.vocabSize) 
       n = n + 1
    end
 end
