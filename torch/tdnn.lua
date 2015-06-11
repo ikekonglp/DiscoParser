@@ -14,7 +14,7 @@ function tdnn.config(cmd)
    cmd:option('-kernelSizeA', 3, 'size of conv kernel')
    cmd:option('-kernelSizeB', 4, 'size of conv kernel')
    cmd:option('-kernelSizeC', 5, 'size of conv kernel')
-   cmd:option('-dropoutP', 0.5, 'dropout rate')
+
    cmd:option('-L2s', 3, 'renorm value')
 end
 
@@ -36,7 +36,7 @@ function tdnn.build(config, init_embed)
    -- Start by embedding and if given, use the passed in (w2v) weights.
    local embed = nn.LookupTable(V, D)
    if init_embed then
-      embed.weight:copy(init_embed)
+      -- embed.weight:copy(init_embed)
    end
    local inlayer = embed(input)
 
@@ -54,11 +54,32 @@ function tdnn.build(config, init_embed)
    return nn.gModule({input}, {penultimate})
 end
 
-function tdnn.rescale(x, linear, config)
+
+function tdnn.build_pairwise(config, init_embed)
+   -- Name parameters.
    local V = config.vocabSize
    local D = config.embedSize
-   local w = linear.weight
-   
+   local H = config.hiddenSize 
+
+   local input = nn.Identity()()
+   local embed = nn.LookupTable(V, D)
+   if init_embed then
+      -- embed.weight:narrow(1,1,V):copy(init_embed)
+      -- embed.weight:narrow(1,V,V):copy(init_embed)
+   end
+   local inlayer = embed(input)
+
+   local temporal = nn.TemporalConvolution(D, H, 2, 2)(inlayer)
+   local nonlin = nn.ReLU()(temporal)
+   local pen = nn.Max(3)(nn.Transpose({2,3})(nonlin))
+
+   local penultimate = pen
+   return nn.gModule({input}, {penultimate})
+end
+
+
+function tdnn.rescale(linear, config)
+   local w = linear.weight   
    local n = linear.weight:view(w:size(1)*w:size(2)):norm()
    if (n > config.L2s) then 
       w:mul(config.L2s):div(n)
