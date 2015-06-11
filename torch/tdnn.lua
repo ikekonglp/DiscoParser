@@ -7,81 +7,62 @@ tdnn = {}
 
 function tdnn.config(cmd)
    cmd:option('-vocabSize', 0, 'size of vocabulary')
+
+   -- Used defaults from Yoon's paper.
    cmd:option('-embedSize', 300, 'size of embedding vec')
-   cmd:option('-nlayers', 3, 'size of tdnn')
    cmd:option('-hiddenSize', 100, 'size of hidden layers')
-   cmd:option('-kernelSize', 3, 'size of conv kernel')
-   cmd:option('-maxPoolSize', 2, 'size of temporal max kern')
+   cmd:option('-kernelSizeA', 3, 'size of conv kernel')
+   cmd:option('-kernelSizeB', 4, 'size of conv kernel')
+   cmd:option('-kernelSizeC', 5, 'size of conv kernel')
+   cmd:option('-dropoutP', 0.5, 'dropout rate')
+   cmd:option('-L2s', 3, 'renorm value')
 end
 
-
-function tdnn.build(config)
+function tdnn.build(config, init_embed)
+   -- Name parameters.
    local V = config.vocabSize
    local D = config.embedSize
-   local L = config.nlayers 
+   local L = 3 
    local H = config.hiddenSize 
-   local K = config.kernelSize
+   local K = {config.kernelSizeA,
+              config.kernelSizeB,
+              config.kernelSizeC}
    local M = config.maxPoolSize 
+   local O = config.labels 
 
-   local input = nn.Identity()()
-   local embed = nn.LookupTable(V, D)(input)
-   local inlayer = embed
-   for l = 1, L do 
-      local temporal = nn.TemporalConvolution(D, H, K)(inlayer)
-      local pool = nn.TemporalMaxPooling(M)(temporal)
-      local nonlin = nn.ReLU()(pool)
-      inlayer = nonlin
-   end
-   local penultimate = nn.Max(3)(nn.Transpose({2,3})(inlayer))
-   local penultimate_drop = nn.Dropout(0.5)(penultimate)
-   local output = nn.LogSoftMax()(nn.Linear(H, 2)(penultimate_drop))
    
-   return nn.gModule({input}, {output})
-end
-
-
-function tdnn.build_yoon(config, init_embed)
-   local V = config.vocabSize
-   local D = config.embedSize
-   local L = config.nlayers 
-   local H = config.hiddenSize 
-   local K = config.kernelSize
-   local M = config.maxPoolSize 
-
    local input = nn.Identity()()
+
+   -- Start by embedding and if given, use the passed in (w2v) weights.
    local embed = nn.LookupTable(V, D)
    if init_embed then
-      print(embed.weight:size(), init_embed:size())
       embed.weight:copy(init_embed)
    end
    local inlayer = embed(input)
 
-   local temporal1 = nn.TemporalConvolution(D, H, K)(inlayer)
-   local nonlin1 = nn.ReLU()(temporal1)
-   local pen1 = nn.Max(3)(nn.Transpose({2,3})(nonlin1))
-
-   local temporal2 = nn.TemporalConvolution(D, H, K+1)(inlayer)
-   local nonlin2 = nn.ReLU()(temporal2)
-   local pen2 = nn.Max(3)(nn.Transpose({2,3})(nonlin2))
-
-   local temporal3 = nn.TemporalConvolution(D, H, K+2)(inlayer)
-   local nonlin3 = nn.ReLU()(temporal3)
-   local pen3 = nn.Max(3)(nn.Transpose({2,3})(nonlin3))
-
-   local penultimate = nn.JoinTable(2)({pen1, pen2, pen3})
-   if config.addSoftMax then 
-      local penultimate_drop = nn.Dropout(0.5)(penultimate)
-      local output = nn.LogSoftMax()(nn.Linear(3*H, 2)(penultimate_drop))
-      return nn.gModule({input}, {output})
-   else
-      return nn.gModule({input}, {penultimate})
+   -- Now do L (3) convolutions with different kernels. 
+   -- Each consists of a temporal conv and a max-over-time.
+   local pen = {}
+   for i = 1, L do 
+      local temporal = nn.TemporalConvolution(D, H, K[i])(inlayer)
+      local nonlin = nn.ReLU()(temporal)
+      table.insert(pen, nn.Max(3)(nn.Transpose({2,3})(nonlin)))
    end
 
-   
-
+   -- Concat the input layers add dropout, throw into softmax-.
+   local penultimate = nn.JoinTable(2)(pen)
+   return nn.gModule({input}, {penultimate})
 end
 
-
-
+function tdnn.rescale(x, linear, config)
+   local V = config.vocabSize
+   local D = config.embedSize
+   local w = linear.weight
+   
+   local n = linear.weight:view(w:size(1)*w:size(2)):norm()
+   if (n > config.L2s) then 
+      w:mul(config.L2s):div(n)
+   end
+end
 
 return tdnn
