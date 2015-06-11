@@ -73,7 +73,7 @@ for i = 1, n1 do
    for j = 1, n2 do 
       align[{{}, i, j, 1}]:copy(train_data[1][{{}, i}])
       n = n + 1
-      align[{{}, i, j, 2}]:copy(train_data[2][{{}, j}]) 
+      align[{{}, i, j, 2}]:copy(train_data[2][{{}, j}] + params.vocabSize) 
       n = n + 1
    end
 end
