@@ -14,7 +14,9 @@ function train.train(network, criterion, data, target, g, rescale, config, state
    local total = 0 
    sys.tic()
    x, dl_dx = network:getParameters()
+   local n = 1
    for i = 1, data[1]:size(1) - config.batchSize, config.batchSize do
+      n = n + 1
       local func = function(x_new)
          network:zeroGradParameters()
          dl_dx:zero()
@@ -34,7 +36,10 @@ function train.train(network, criterion, data, target, g, rescale, config, state
       end
       optim.adadelta(func, x, state)
       rescale(x)
-      
+      print("done")
+      if n % 10 == 0 then
+         print(n)
+      end
    end
 
    print("[EPOCH loss=", loss / total, 
