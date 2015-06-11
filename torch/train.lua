@@ -24,6 +24,7 @@ function train.train(network, criterion, data, target, g, rescale, config, state
          local input = g(data, i, config.batchSize) 
          local targ = target:narrow(1, i, config.batchSize)
          local out = network:forward(input)
+         
          local local_loss = criterion:forward(out, targ) 
          loss = loss + local_loss * config.batchSize
          total = total + config.batchSize
@@ -66,6 +67,7 @@ function train.eval(network, criterion, data, target, g, config)
    print(confusion)
    print("[EVAL loss=", loss/total, "time=", sys.toc(), "]")
    return loss / total
+
 end
 
 

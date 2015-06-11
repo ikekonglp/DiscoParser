@@ -62,19 +62,22 @@ local target_data = make_cuda(f:read('train_label'):all())
 params.labels = target_data:max()
 target_data = target_data
 
-local n1 = math.min(train_data[1]:size(2), 5)
-local n2 = math.min(train_data[2]:size(2), 5)
-local align = torch.ones(train_data[1]:size(1), 2*n1 * n2):float()
+local n1 = math.min(train_data[1]:size(2), 30)
+local n2 = math.min(train_data[2]:size(2), 30)
+
+-- Alignment Matrix
+local align = torch.ones(train_data[1]:size(1), n1, n2, 2):long():fill(2)
 
 local n = 1
 for i = 1, n1 do 
    for j = 1, n2 do 
-      align[{{}, n}]:copy(train_data[1][{{}, i}])
+      align[{{}, i, j, 1}]:copy(train_data[1][{{}, i}])
       n = n + 1
-      align[{{}, n}]:copy(train_data[2][{{}, j}] + params.vocabSize) 
+      align[{{}, i, j, 2}]:copy(train_data[2][{{}, j}]) 
       n = n + 1
    end
 end
+
 
 
 test_data[1] = make_cuda(f:read('dev_arg1'):all())
@@ -132,7 +135,7 @@ for i = 1, params.epochs do
    local function g(data, i, size)
       return {data[1]:narrow(1, i, size), 
               data[2]:narrow(1, i, size),
-              align:narrow(1, i, size)}
+              align:narrow(1, i, size):view(size, 30*30*2)}
    end
    
    train.train(network, 
