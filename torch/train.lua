@@ -11,7 +11,6 @@ function train.train(network, criterion, data, target, g, rescale, config)
    network:training()
    state = {
       learningRate = config.learningRate,
-      weightDecay = 0.5
    }
 
    local loss = 0 
