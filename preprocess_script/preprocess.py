@@ -49,8 +49,6 @@ def process_file(f, fw):
         else:
             if len(line.strip()) > 0:
                 store_info.append(line.strip())
-
-        
     f.close()
 
 def find_arg12(store_info):
@@ -64,6 +62,25 @@ def find_arg12(store_info):
 
     return [text1, text2]
 
+def find_relation(store_info):
+    ind = find_first_start_at(0, pattern_sup1, store_info) if find_first_start_at(0, pattern_sup1, store_info) > 0 else find_first_start_at(0, pattern_arg1, store_info)
+    relation = store_info[ind-1][(store_info[ind-1].find(',') + 1):].strip().split(',')
+    if len(relation) == 1:
+        relation = relation[0].split('.')
+        if len(relation) > 2:
+            relation = relation[:2]
+        relation = ".".join(relation)
+        return relation.strip()
+    else:
+        finr = []
+        for r in relation:
+            r = r.split('.')
+            if len(r) > 2:
+                r = r[:2]
+
+            r = ".".join(r).strip()
+            finr.append(r)
+        return finr
 
 def process_unit(store_info, fw):
     if pattern_type.match(store_info[0]):
@@ -72,25 +89,13 @@ def process_unit(store_info, fw):
         if pattern_explicit.match(info_type):
             if ONLY_IMPLICIT:
                 return
-            ind = find_first_start_at(0, pattern_sup1, store_info) if find_first_start_at(0, pattern_sup1, store_info) > 0 else find_first_start_at(0, pattern_arg1, store_info)
-            relation = store_info[ind-1][(store_info[ind-1].rfind(',') + 1):].strip().split('.')
-            if len(relation) > 2:
-                relation = relation[:2]
-            relation = ".".join(relation)
+            relation = find_relation(store_info)
         elif pattern_implicit.match(info_type):
-            ind = find_first_start_at(0, pattern_sup1, store_info) if find_first_start_at(0, pattern_sup1, store_info) > 0 else find_first_start_at(0, pattern_arg1, store_info)
-            relation = store_info[ind-1][(store_info[ind-1].rfind(',') + 1):].strip().split('.')
-            if len(relation) > 2:
-                relation = relation[:2]
-            relation =  ".".join(relation)
+            relation = find_relation(store_info)
         elif pattern_altlex.match(info_type):
             if ONLY_IMPLICIT:
                 return
-            ind = find_first_start_at(0, pattern_sup1, store_info) if find_first_start_at(0, pattern_sup1, store_info) > 0 else find_first_start_at(0, pattern_arg1, store_info)
-            relation = store_info[ind-1][(store_info[ind-1].rfind(',') + 1):].strip().split('.')
-            if len(relation) > 2:
-                relation = relation[:2]
-            relation =  ".".join(relation)
+            relation = find_relation(store_info)
         elif pattern_entrel.match(info_type):
             if ONLY_IMPLICIT:
                 return
@@ -100,10 +105,15 @@ def process_unit(store_info, fw):
                 return
             relation = 'NoRel'
         finlist = find_arg12(store_info)
-        finlist.append(relation)
-        # if len(finlist[0]) == 0 or len(finlist[1]) == 0:
-        #     print store_info
-        fw.write("||||".join(finlist) + "\n")
+        print_instance(relation, finlist)
+
+def print_instance(relations, finlist):
+    if isinstance(relations, str):
+        fw.write(finlist[0] + "||||" + finlist[1] + "||||" + relations + "\n")
+    else:
+        for relation in relations:
+            fw.write(finlist[0] + "||||" + finlist[1] + "||||" + relation + "\n")
+    
 
 def find_first_start_at(start, pattern, store_info):
     for i in xrange(start, len(store_info)):
