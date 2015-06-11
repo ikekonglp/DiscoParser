@@ -17,12 +17,13 @@ cmd:option('-epochs', 1, 'epochs')
 cmd:option('-labels', 10, 'labels')
 cmd:option('-s', 3, 'renorm value')
 params = cmd:parse(arg)
+
 function make_network(config)
    local input1 = nn.Identity()()
    local input2 = nn.Identity()()
 
-   local network1 = tdnn.build_yoon(params)
-   local network2 = tdnn.build_yoon(params)
+   local network1 = tdnn.build(params)
+   local network2 = tdnn.build(params)
    
    local u1 = network1(input1)
    local u2 = network2(input2)
@@ -30,12 +31,8 @@ function make_network(config)
    local pen = nn.JoinTable(2)({u1, u2})
    local H = config.hiddenSize
    local penultimate_drop = nn.Dropout(0.5)(pen)
-   -- return nn.gModule({input1, input2}, {penultimate_drop})
    local penultimate2 = nn.ReLU()(nn.Linear(6*H, H)(penultimate_drop))
-
-
    local output = nn.LogSoftMax()(nn.Linear(H, params.labels)(penultimate2))
-   
    return nn.gModule({input1, input2}, {output})
 end
 
@@ -54,36 +51,40 @@ local test_target_data = f:read('dev_label'):all():cuda()
 
 
 local criterion = nn.ClassNLLCriterion()
-
--- shuffle = torch.randperm(train_data:size(1))
--- train_data = train_data:index(1, shuffle:long())
--- target_data = target_data:index(1, shuffle:long())
-
--- train_data = train_data:cuda()
--- target_data = target_data:cuda()
--- test_data = test_data:cuda()
--- test_target_data = test_target_data:cuda()
-
 network = make_network(params)
 network:cuda()
 criterion:cuda()
 
-for i = 1, params.epochs do
-   -- shuffle = torch.randperm(train_data:size(1))
-   -- train_data = train_data:index(1, shuffle:long())
-   -- target_data = target_data:index(1, shuffle:long())
+-- L2 Rescaling. 
+local linear
+local embedding
+local function get_linear(layer) 
+   local tn = torch.typename(layer)
+   if tn == "nn.Linear" then
+      linear = layer
+   end
+   if tn == "nn.LookupTable" then
+      embedding = layer
+   end
+end
+network:apply(get_linear)
 
+local function rescale(x)
+   tdnn.rescale(x, linear, params)
+   embedding.weight[1]:zero()
+end
+
+
+for i = 1, params.epochs do
    local function g(data, i, size)
       return {data[1]:narrow(1, i, size), 
               data[2]:narrow(1, i, size)}
    end
-
    
-
    train.train(network, 
                criterion, 
                train_data,
-               target_data, g, params)
+               target_data, g, rescale, params)
    train.eval(network, criterion, 
               test_data,
               test_target_data, g, 
