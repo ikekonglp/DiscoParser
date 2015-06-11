@@ -31,14 +31,17 @@ class IndexDict:
         else:
             return 2
 
+    def length(self):
+        return (self.ind-1)
+
 def gen_representation(dataset, vol, relations, throw_away=False):
     targ1 = []
     targ2 = []
     trelation = []
     for line in dataset:
         args = line.split("||||")
-        tokens_arg1 = [word.strip().lower() for word in nltk.word_tokenize(args[0])]
-        tokens_arg2 = [word.strip().lower() for word in nltk.word_tokenize(args[1])]
+        tokens_arg1 = [word.strip() for word in nltk.word_tokenize(args[0])]
+        tokens_arg2 = [word.strip() for word in nltk.word_tokenize(args[1])]
         relation = args[2].strip()
 
         num_arg1 = [vol.get(word) for word in tokens_arg1]
@@ -81,7 +84,24 @@ def gen_representation(dataset, vol, relations, throw_away=False):
     # print [targ1, targ2, trelation]
     return [targ1, targ2, trelation]
 
-        
+def load_word2vec(vol):
+    verts = [None] * vol.length()
+    word2vec = {}
+    f = open('../dataset/GoogleNews-vectors-negative300.readable', 'r')
+    for line in f:
+        args = line.split()
+        if len(args) == 301:
+            if args[0] in vol.dict:
+                fnums = args[1:]
+                v = [float(x) for x in fnums]
+                print args[0]
+                verts[vol.get(args[0])-1] = np.array(v, dtype=float)
+    verts[0] = np.array([0] * 300, dtype=float)
+    for i in xrange(0, len(verts)):
+        if verts[i] is None:
+            verts[i] = np.array(np.random.normal(0, 0.01, size=300), dtype=float)
+    f.close()
+    return verts
 
 if __name__ == '__main__':
     f_train = open("train_imp", "r")
@@ -99,8 +119,8 @@ if __name__ == '__main__':
     for line in train:
         args = line.split("||||")
 
-        tokens_arg1 = [word.strip().lower() for word in nltk.word_tokenize(args[0])]
-        tokens_arg2 = [word.strip().lower() for word in nltk.word_tokenize(args[1])]
+        tokens_arg1 = [word.strip() for word in nltk.word_tokenize(args[0])]
+        tokens_arg2 = [word.strip() for word in nltk.word_tokenize(args[1])]
         relation = args[2].strip()
 
         for w in tokens_arg1:
@@ -113,16 +133,17 @@ if __name__ == '__main__':
         if cnt[w] > 1:
             vol.get_or_add(w)
 
-    # print relations.dict, len(relations.dict)
+    verts = load_word2vec(vol)
 
-    
+    # for word in vol.dict:
+    #     print word, vol.get(word)
 
     f = h5py.File("mr.hdf5", "w")
     f['train_arg1'], f['train_arg2'], f['train_label'] = ([np.array(ele, dtype=int) for ele in gen_representation(train, vol, relations, True)])
     f['dev_arg1'], f['dev_arg2'], f['dev_label'] = ([np.array(ele, dtype=int) for ele in gen_representation(dev, vol, relations)])
     f['test_arg1'], f['test_arg2'], f['test_label'] = ([np.array(ele, dtype=int) for ele in gen_representation(test, vol, relations)])
-    
-
+    f['embeding'] = np.array(verts)
+    print np.array(verts).shape
     f_train.close()
     f_dev.close()
     f_test.close()
