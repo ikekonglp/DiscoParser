@@ -19,12 +19,12 @@ cmd:option('-s', 3, 'renorm value')
 cmd:option('-cuda', 1, 'use gpu')
 params = cmd:parse(arg)
 
-function make_network(config)
+function make_network(config, w2v)
    local input1 = nn.Identity()()
    local input2 = nn.Identity()()
 
-   local network1 = tdnn.build(params)
-   local network2 = tdnn.build(params)
+   local network1 = tdnn.build(params, w2v)
+   local network2 = tdnn.build(params, w2v)
    
    local u1 = network1(input1)
    local u2 = network2(input2)
@@ -47,6 +47,8 @@ local function make_cuda(vec)
 end
 
 local f = hdf5.open(params.trainData,'r')
+local w2v = f:read('embeding'):all()
+
 local train_data = {}
 local test_data = {}
 train_data[1] = make_cuda(f:read('train_arg1'):all())
@@ -62,7 +64,7 @@ local test_target_data = make_cuda(f:read('dev_label'):all())
 
 
 local criterion = nn.ClassNLLCriterion()
-network = make_network(params)
+network = make_network(params, w2v)
 
 if params.cuda then 
    network:cuda()
