@@ -68,14 +68,13 @@ def gen_representation(dataset, vol, relations, throw_away=False):
         arg2 = []
         front = 0
         for num in num_arg2:
-            if front < 5:
-                arg2.append(num)
-                front +=1
-            else:
-                arg2.append(1)
+            arg2.append(num)
 
         while len(arg2) < MAX_LENGTH:
-            arg2.insert(0, 1)
+            if front < 5:
+                arg2.insert(0, 1)
+            else:
+                arg2.append(1)
 
         if (throw_away) and (len(arg2) > MAX_LENGTH or len(arg1) > MAX_LENGTH):
             continue 
