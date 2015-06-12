@@ -73,6 +73,7 @@ def gen_representation(dataset, vol, relations, throw_away=False):
         while len(arg2) < MAX_LENGTH:
             if front < 5:
                 arg2.insert(0, 1)
+                front += 1
             else:
                 arg2.append(1)
 
