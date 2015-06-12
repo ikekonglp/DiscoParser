@@ -7,27 +7,26 @@ function train.config(cmd)
    cmd:option('-batchSize', 50, 'size of mini-batch')
 end
 
-function train.train(network, criterion, data, target, g, rescale, config) 
+function train.train(network, criterion, data, target, g, rescale, config, state) 
    network:training()
-   state = {
-      learningRate = config.learningRate,
-   }
 
    local loss = 0 
    local total = 0 
    sys.tic()
    x, dl_dx = network:getParameters()
+   local n = 1
    for i = 1, data[1]:size(1) - config.batchSize, config.batchSize do
+      n = n + 1
       local func = function(x_new)
          network:zeroGradParameters()
          dl_dx:zero()
-
          if x ~= x_new then 
             x:copy(x_new)
          end
          local input = g(data, i, config.batchSize) 
          local targ = target:narrow(1, i, config.batchSize)
          local out = network:forward(input)
+         
          local local_loss = criterion:forward(out, targ) 
          loss = loss + local_loss * config.batchSize
          total = total + config.batchSize
@@ -36,10 +35,13 @@ function train.train(network, criterion, data, target, g, rescale, config)
          return local_loss, dl_dx
       end
       optim.adadelta(func, x, state)
-
       rescale(x)
+      print("done")
+      if n % 10 == 0 then
+         print(n)
+      end
    end
-   
+
    print("[EPOCH loss=", loss / total, 
          "time=", sys.toc(), "]")
 end
@@ -69,6 +71,8 @@ function train.eval(network, criterion, data, target, g, config)
    end
    print(confusion)
    print("[EVAL loss=", loss/total, "time=", sys.toc(), "]")
+   return loss / total
+
 end
 
 
