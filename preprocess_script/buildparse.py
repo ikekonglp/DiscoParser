@@ -12,6 +12,7 @@ from nltk.parse import stanford
 from nltk import Tree
 import pickle
 
+MAX_LENGTH = 100
 STANFORD_DIR = "/home/lingpenk/research/parsers/stanford/stanford330/"
 
 class IndexDict:
@@ -28,11 +29,11 @@ class IndexDict:
             self.ind += 1
             return self.ind-1
 
-    def get(self, word):
+    def get(self, word, level=0):
         if word in self.dict:
-            return self.dict[word]
+            return self.dict[word] + (level * (self.ind-1))
         else:
-            return 2
+            return 2 + (level * (self.ind-1))
 
     def length(self):
         return (self.ind-1)
@@ -158,13 +159,9 @@ if __name__ == '__main__':
     for tree1, tree2 in zip(train_parse_arg1s,train_parse_arg2s):
         scnt1 = gen_rules(tree1)
         scnt2 = gen_rules(tree2)
-        vec1 = gen_vector(scnt1,rule_index_dict)
-        vec2 = gen_vector(scnt2,rule_index_dict)
-        vec3 = map(lambda x:min(x), zip(vec1,vec2))
-        vec = vec1 + vec2 + vec3
-        vec = np.array(vec, dtype=int)
-        train_parse_arg_vec.append(vec)
-    train_parse_arg_vec = np.array(train_parse_arg_vec, dtype=int)
+        common_rules = [r for r in scnt1 if r in scnt2]
+
+
 
     dev_parse_arg_vec = []
     for tree1, tree2 in zip(dev_parse_arg1s,dev_parse_arg2s):
