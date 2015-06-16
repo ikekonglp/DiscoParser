@@ -37,6 +37,7 @@ function tdnn.build(config, init_embed)
    -- Start by embedding and if given, use the passed in (w2v) weights.
    local embed = nn.LookupTable(V, D)
    if init_embed then
+      print(init_embed:size())
       embed.weight:copy(init_embed)
    end
    local inlayer = embed(input)

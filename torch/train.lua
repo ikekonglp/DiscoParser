@@ -7,13 +7,13 @@ function train.config(cmd)
    cmd:option('-batchSize', 50, 'size of mini-batch')
 end
 
-function train.train(network, criterion, data, target, g, rescale, config, state) 
+function train.train(network, x, dl_dx, criterion, data, target, g, rescale, config, state) 
    network:training()
 
    local loss = 0 
    local total = 0 
    sys.tic()
-   x, dl_dx = network:getParameters()
+
    local n = 1
    for i = 1, data[1]:size(1) - config.batchSize, config.batchSize do
       n = n + 1
