@@ -63,17 +63,16 @@ function tdnn.build_pairwise(config, init_embed)
    local H = config.hiddenSize 
    
    local input = nn.Identity()()
-   local embed = nn.LookupTable(2*V, 50)
+   local embed = nn.LookupTable(2*V, D)
    if init_embed then
-      -- embed.weight:narrow(1,1,V):copy(init_embed)
-      -- embed.weight:narrow(1,V,V):copy(init_embed)
+      embed.weight:narrow(1,1,V):copy(init_embed)
+      embed.weight:narrow(1,V,V):copy(init_embed)
    end
-   local inlayer = nn.Transpose({2, 4})(nn.View(30, 30, 2*50)(embed(input)))
+   local inlayer = nn.Transpose({2, 4})(nn.View(30, 30, 2*D)(embed(input)))
 
-   local temporal = nn.SpatialConvolution(2*50, H, 2, 2)(inlayer)
+   local temporal = nn.SpatialConvolution(2*D, H, 2, 2)(inlayer)
    local nonlin = temporal
    local pen = nn.ReLU()(nn.Max(3)(nn.Max(4)(nonlin)))
-
 
    local penultimate = pen
    return nn.gModule({input}, {penultimate})
