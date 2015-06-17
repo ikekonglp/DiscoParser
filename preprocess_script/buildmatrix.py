@@ -206,6 +206,13 @@ if __name__ == '__main__':
     for w in cnt:
         if cnt[w] > 1:
             vol.get_or_add(w)
+    # print relation table
+    f_relation_table = open("relation_table", "w")
+    for relation in relations.dict:
+        f_relation_table.write(relation + "\t" + str(relations.get(relation)) + "\n")
+    f_relation_table.close()
+    ####
+    sys.exit()
 
     verts = load_word2vec(vol)
 
