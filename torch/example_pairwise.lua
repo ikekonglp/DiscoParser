@@ -95,6 +95,7 @@ if params.test then
    local test_data = {}
    test_data[1] = make_cuda(f:read('dev_arg1'):all())
    test_data[2] = make_cuda(f:read('dev_arg2'):all())
+   test_data[3] = make_cuda(f:read('dev_parse'):all())
    local test_target_data = make_cuda(f:read('dev_label'):all())
    local score, result = train.eval(network, criterion, test_data,
                                     test_target_data, g, params)
