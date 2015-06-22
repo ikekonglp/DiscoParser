@@ -11,6 +11,7 @@ import numpy as np
 from nltk.parse import stanford
 from nltk import Tree
 import pickle
+import StanfordDependencies
 
 MAX_LENGTH = 100
 STANFORD_DIR = "/home/lingpenk/research/parsers/stanford/stanford330/"
@@ -61,145 +62,100 @@ def gen_vector(rule_cnt, rule_index_dict):
     return vec
 
 
+def parse_tokenized_sentences(parser, sentences, verbose=False):
+    cmd = [
+        'edu.stanford.nlp.parser.lexparser.LexicalizedParser',
+        '-model', parser.model_path,
+        '-sentences', 'newline',
+        '-outputFormat', 'penn',
+        '-tokenized',
+    ]
+    return parser._parse_trees_output(parser._execute(cmd, '\n'.join(sentences), verbose))
 
 
 if __name__ == '__main__':
-    # f_train = open("train_imp", "r")
-    # f_dev = open("dev_imp", "r")
-    # f_test = open("test_imp", "r")
+    f_train = open("train_imp", "r")
+    f_dev = open("dev_imp", "r")
+    f_test = open("test_imp", "r")
 
-    # train = f_train.readlines()
-    # dev = f_dev.readlines()
-    # test = f_test.readlines()
+    train = f_train.readlines()
+    dev = f_dev.readlines()
+    test = f_test.readlines()
     
     # cnt = Counter()
     # relations = IndexDict()
     # vol = IndexDict()
 
-    # os.environ['STANFORD_PARSER'] = STANFORD_DIR + "stanford-parser.jar"
-    # os.environ['STANFORD_MODELS'] = STANFORD_DIR + "stanford-parser-3.3.0-models.jar"
+    os.environ['STANFORD_PARSER'] = STANFORD_DIR + "stanford-parser.jar"
+    os.environ['STANFORD_MODELS'] = STANFORD_DIR + "stanford-parser-3.3.0-models.jar"
 
-    # parser = stanford.StanfordParser(model_path= STANFORD_DIR + "englishPCFG.ser.gz")
+    parser = stanford.StanfordParser(model_path= STANFORD_DIR + "englishPCFG.ser.gz")
+    # st = (" ".join(nltk.word_tokenize("Hello, My (name) is Melroy."))).replace("(", "-LRB-").replace(")","-RRB-")
+    # sentences = parse_tokenized_sentences(parser, [st])
+    # print st
+    # print sentences
 
-    # arg1s = []
-    # arg2s = []
-    # # ind = 0
-    # for line in train:
-    #     # ind += 1
-    #     # print ind
-    #     args = line.split("||||")
-    #     arg1s.append(args[0].strip().encode('utf-8'))
-    #     arg2s.append(args[1].strip().encode('utf-8'))
+    # sd = StanfordDependencies.get_instance(version='3.3.0')
 
-    # print len(arg1s), len(arg2s)
-    # train_parse_arg1s = parser.raw_parse_sents(arg1s, True)
-    # train_parse_arg2s = parser.raw_parse_sents(arg2s, True)
-
-    # arg1s = []
-    # arg2s = []
-    # # ind = 0
-    # for line in dev:
-    #     # ind += 1
-    #     # print ind
-    #     args = line.split("||||")
-    #     arg1s.append(args[0].strip().encode('utf-8'))
-    #     arg2s.append(args[1].strip().encode('utf-8'))
-
-    # print len(arg1s), len(arg2s)
-    # dev_parse_arg1s = parser.raw_parse_sents(arg1s, True)
-    # dev_parse_arg2s = parser.raw_parse_sents(arg2s, True)
-
-    # arg1s = []
-    # arg2s = []
-    # # ind = 0
-    # for line in test:
-    #     # ind += 1
-    #     # print ind
-    #     args = line.split("||||")
-    #     arg1s.append(args[0].strip().encode('utf-8'))
-    #     arg2s.append(args[1].strip().encode('utf-8'))
-
-    # print len(arg1s), len(arg2s)
-    # test_parse_arg1s = parser.raw_parse_sents(arg1s, True)
-    # test_parse_arg2s = parser.raw_parse_sents(arg2s, True)
-
-    # pickle.dump( train_parse_arg1s, open( "train_parse_arg1s.p", "wb" ) )
-    # pickle.dump( train_parse_arg2s, open( "train_parse_arg2s.p", "wb" ) )
-
-    # pickle.dump( dev_parse_arg1s, open( "dev_parse_arg1s.p", "wb" ) )
-    # pickle.dump( dev_parse_arg2s, open( "dev_parse_arg2s.p", "wb" ) )
-
-    # pickle.dump( test_parse_arg1s, open( "test_parse_arg1s.p", "wb" ) )
-    # pickle.dump( test_parse_arg2s, open( "test_parse_arg2s.p", "wb" ) )
-
-        # sent1 = parser.raw_parse(args[0])
-    train_parse_arg1s = pickle.load( open( "train_parse_arg1s.p", "rb" ) )
-    train_parse_arg2s = pickle.load( open( "train_parse_arg2s.p", "rb" ) )
-    dev_parse_arg1s = pickle.load( open( "dev_parse_arg1s.p", "rb" ) )
-    dev_parse_arg2s = pickle.load( open( "dev_parse_arg2s.p", "rb" ) )
-    test_parse_arg1s = pickle.load( open( "test_parse_arg1s.p", "rb" ) )
-    test_parse_arg2s = pickle.load( open( "test_parse_arg2s.p", "rb" ) )
-
-    rule_cnt = Counter()
-    for tree in train_parse_arg1s:
-        scnt = gen_rules(tree)
-        for rule in scnt:
-            rule_cnt[rule] = rule_cnt[rule] + scnt[rule]
-    for tree in train_parse_arg2s:
-        scnt = gen_rules(tree)
-        for rule in scnt:
-            rule_cnt[rule] = rule_cnt[rule] + scnt[rule]
-
-    rule_index_dict = IndexDict()
-    for rule in rule_cnt:
-        rule_index_dict.get_or_add(rule)
-
-    # bulild vectors
-    train_parse_arg_vec = []
-    for tree1, tree2 in zip(train_parse_arg1s,train_parse_arg2s):
-        scnt1 = gen_rules(tree1)
-        scnt2 = gen_rules(tree2)
-        common_rules = [r for r in scnt1 if r in scnt2]
+    # print [sd.convert_tree(s._pprint_flat(nodesep='', parens='()', quotes=False)) for s in sentences]
 
 
+    arg1s = []
+    arg2s = []
+    ind = 0
+    for line in train:
+        ind += 1
+        print ind
+        args = line.split("||||")
+        arg1s.append(((" ".join( [w for w in nltk.word_tokenize(args[0].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+        arg2s.append(((" ".join( [w for w in nltk.word_tokenize(args[1].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
 
-    dev_parse_arg_vec = []
-    for tree1, tree2 in zip(dev_parse_arg1s,dev_parse_arg2s):
-        scnt1 = gen_rules(tree1)
-        scnt2 = gen_rules(tree2)
-        vec1 = gen_vector(scnt1,rule_index_dict)
-        vec2 = gen_vector(scnt2,rule_index_dict)
-        vec3 = map(lambda x:min(x), zip(vec1,vec2))
-        vec = vec1 + vec2 + vec3
-        vec = np.array(vec, dtype=int)
-        dev_parse_arg_vec.append(vec)
-    dev_parse_arg_vec = np.array(dev_parse_arg_vec, dtype=int)
+    print len(arg1s), len(arg2s)
+    train_parse_arg1s = parse_tokenized_sentences(parser, arg1s, True)
+    train_parse_arg2s = parse_tokenized_sentences(parser, arg2s, True)
 
-    test_parse_arg_vec = []
-    for tree1, tree2 in zip(test_parse_arg1s,test_parse_arg2s):
-        scnt1 = gen_rules(tree1)
-        scnt2 = gen_rules(tree2)
-        vec1 = gen_vector(scnt1,rule_index_dict)
-        vec2 = gen_vector(scnt2,rule_index_dict)
-        vec3 = map(lambda x:min(x), zip(vec1,vec2))
-        vec = vec1 + vec2 + vec3
-        vec = np.array(vec, dtype=int)
-        test_parse_arg_vec.append(vec)
-    test_parse_arg_vec = np.array(test_parse_arg_vec, dtype=int)
-    print test_parse_arg_vec
-    
+    arg1s = []
+    arg2s = []
+    ind = 0
+    for line in dev:
+        ind += 1
+        print ind
+        args = line.split("||||")
+        arg1s.append(((" ".join( [w for w in nltk.word_tokenize(args[0].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+        arg2s.append(((" ".join( [w for w in nltk.word_tokenize(args[1].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
 
-    # print rule_set
-    # print len(rule_set)
+    print len(arg1s), len(arg2s)
+    dev_parse_arg1s = parse_tokenized_sentences(parser, arg1s, True)
+    dev_parse_arg2s = parse_tokenized_sentences(parser, arg2s, True)
 
-    # for word in vol.dict:
-    #     print word, vol.get(word)
+    arg1s = []
+    arg2s = []
+    ind = 0
+    for line in test:
+        ind += 1
+        print ind
+        args = line.split("||||")
+        arg1s.append(((" ".join( [w for w in nltk.word_tokenize(args[0].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+        arg2s.append(((" ".join( [w for w in nltk.word_tokenize(args[1].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
 
-    f = h5py.File("pr.hdf5", "w")
-    f['train_parse_arg'] = train_parse_arg_vec
-    f['dev_parse_arg'] = dev_parse_arg_vec
-    f['test_parse_arg'] = test_parse_arg_vec
-    
-    # f_train.close()
-    # f_dev.close()
-    # f_test.close()
+    print len(arg1s), len(arg2s)
+
+    test_parse_arg1s = parse_tokenized_sentences(parser, arg1s, True)
+    test_parse_arg2s = parse_tokenized_sentences(parser, arg2s, True)
+
+    pickle.dump( train_parse_arg1s, open( "train_parse_arg1s.p", "wb" ) )
+    pickle.dump( train_parse_arg2s, open( "train_parse_arg2s.p", "wb" ) )
+
+    pickle.dump( dev_parse_arg1s, open( "dev_parse_arg1s.p", "wb" ) )
+    pickle.dump( dev_parse_arg2s, open( "dev_parse_arg2s.p", "wb" ) )
+
+    pickle.dump( test_parse_arg1s, open( "test_parse_arg1s.p", "wb" ) )
+    pickle.dump( test_parse_arg2s, open( "test_parse_arg2s.p", "wb" ) )
+
+
+    # train_parse_arg1s = pickle.load( open( "train_parse_arg1s.p", "rb" ) )
+    # train_parse_arg2s = pickle.load( open( "train_parse_arg2s.p", "rb" ) )
+    # dev_parse_arg1s = pickle.load( open( "dev_parse_arg1s.p", "rb" ) )
+    # dev_parse_arg2s = pickle.load( open( "dev_parse_arg2s.p", "rb" ) )
+    # test_parse_arg1s = pickle.load( open( "test_parse_arg1s.p", "rb" ) )
+    # test_parse_arg2s = pickle.load( open( "test_parse_arg2s.p", "rb" ) )

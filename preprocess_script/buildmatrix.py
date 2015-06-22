@@ -13,6 +13,8 @@ import pickle
 
 MAX_LENGTH = 100
 
+# The index dictionary, 1 is for padding, 2 is OOV
+# The level gives you different indexing system when you want to sepearte the feature indices
 class IndexDict:
     def __init__(self):
         self.dict = {}
@@ -36,6 +38,41 @@ class IndexDict:
     def length(self):
         return (self.ind-1)
 
+def gen_word_vector(tokens_arg, vol):
+    num_arg = [vol.get(word) for word in tokens_arg]
+
+    assert(len(num_arg) > 0)
+
+    arg = []
+    front = 0
+    for num in num_arg:
+        arg.append(num)
+
+    while len(arg) < MAX_LENGTH:
+        if front < 5:
+            arg.insert(0, 1)
+            front += 1
+        else:
+            arg.append(1)
+    return arg
+
+def gen_parse_feature_vector(tree1, tree2):
+    train_parse_arg_vec = []
+
+    scnt1 = gen_rules(tree1)
+    scnt2 = gen_rules(tree2)
+    common_rules = [r for r in scnt1 if (r in scnt2)]
+    for r in scnt1:
+        train_parse_arg_vec.append(rule_index_dict.get(r, 0))
+    for r in scnt2:
+        train_parse_arg_vec.append(rule_index_dict.get(r, 1))
+    for r in common_rules:
+        train_parse_arg_vec.append(rule_index_dict.get(r, 2))
+
+    while len(train_parse_arg_vec) < (3 * MAX_LENGTH):
+        train_parse_arg_vec.append(1)
+    return train_parse_arg_vec
+
 def gen_representation(dataset, vol, relations, parse_arg1s, parse_arg2s, rule_index_dict, throw_away=False):
     targ1 = []
     targ2 = []
@@ -44,70 +81,18 @@ def gen_representation(dataset, vol, relations, parse_arg1s, parse_arg2s, rule_i
     data_ind = -1
     for line in dataset:
         data_ind += 1
-        args = line.split("||||")
-        tokens_arg1 = [word.strip() for word in nltk.word_tokenize(args[0])]
-        tokens_arg2 = [word.strip() for word in nltk.word_tokenize(args[1])]
-        relation = args[2].strip()
-
-        num_arg1 = [vol.get(word) for word in tokens_arg1]
-        num_arg2 = [vol.get(word) for word in tokens_arg2]
-
-        if len(num_arg1)==0 or len(num_arg2)==0:
-            print "let me know"
-            print tokens_arg1, tokens_arg2, relation
-            exit()
-
-
-        arg1 = []
-        front = 0
-        for num in num_arg1:
-            arg1.append(num)
-
-        while len(arg1) < MAX_LENGTH:
-            if front < 5:
-                arg1.insert(0, 1)
-                front += 1
-            else:
-                arg1.append(1)
-
-        arg2 = []
-        front = 0
-        for num in num_arg2:
-            arg2.append(num)
-
-        while len(arg2) < MAX_LENGTH:
-            if front < 5:
-                arg2.insert(0, 1)
-                front += 1
-            else:
-                arg2.append(1)
+        tokens_arg1, tokens_arg2, relation = extract_fields(line)
+        arg1 = gen_word_vector(tokens_arg1, vol)
+        arg2 = gen_word_vector(tokens_arg2, vol)
 
         if (throw_away) and (len(arg2) > MAX_LENGTH or len(arg1) > MAX_LENGTH):
             continue
 
-        train_parse_arg_vec = []
-        tree1 = parse_arg1s[data_ind]
-        tree2 = parse_arg2s[data_ind]
-
-        scnt1 = gen_rules(tree1)
-        scnt2 = gen_rules(tree2)
-        common_rules = [r for r in scnt1 if (r in scnt2)]
-        for r in scnt1:
-            train_parse_arg_vec.append(rule_index_dict.get(r, 0))
-        for r in scnt2:
-            train_parse_arg_vec.append(rule_index_dict.get(r, 1))
-        for r in common_rules:
-            train_parse_arg_vec.append(rule_index_dict.get(r, 3))
-
-        print train_parse_arg_vec
-
-        while len(train_parse_arg_vec) < (3 * MAX_LENGTH):
-            train_parse_arg_vec.append(1)
+        train_parse_arg_vec = gen_parse_feature_vector(parse_arg1s[data_ind], parse_arg2s[data_ind])
 
         targ1.append(arg1)
         targ2.append(arg2)
         tparse.append(train_parse_arg_vec)
-
         trelation.append(relations.get(relation))
 
         assert(len(arg1) == MAX_LENGTH)
@@ -115,8 +100,6 @@ def gen_representation(dataset, vol, relations, parse_arg1s, parse_arg2s, rule_i
         assert(len(train_parse_arg_vec) == (3 * MAX_LENGTH))
         assert(len(targ1) == len(trelation))
         
-        #break
-    # print [targ1, targ2, trelation]
     return [targ1, targ2, trelation, tparse]
 
 def load_word2vec(vol):
@@ -177,7 +160,7 @@ def load_parses():
         rule_index_dict.get_or_add(rule)
     return (rule_index_dict, train_parse_arg1s, train_parse_arg2s, dev_parse_arg1s, dev_parse_arg2s, test_parse_arg1s, test_parse_arg2s)
 
-if __name__ == '__main__':
+def read_in_data():
     f_train = open("train_imp", "r")
     f_dev = open("dev_imp", "r")
     f_test = open("test_imp", "r")
@@ -185,18 +168,20 @@ if __name__ == '__main__':
     train = f_train.readlines()
     dev = f_dev.readlines()
     test = f_test.readlines()
-    
+
+    f_train.close()
+    f_dev.close()
+    f_test.close()
+
+    return (train, dev, test)
+
+def load_dictionary(train):
     cnt = Counter()
     relations = IndexDict()
     vol = IndexDict()
 
     for line in train:
-        args = line.split("||||")
-
-        tokens_arg1 = [word.strip() for word in nltk.word_tokenize(args[0])]
-        tokens_arg2 = [word.strip() for word in nltk.word_tokenize(args[1])]
-        relation = args[2].strip()
-
+        tokens_arg1, tokens_arg2, relation = extract_fields(line)
         for w in tokens_arg1:
             cnt[w] += 1
         for w in tokens_arg2:
@@ -206,27 +191,37 @@ if __name__ == '__main__':
     for w in cnt:
         if cnt[w] > 1:
             vol.get_or_add(w)
+    return (cnt, relations, vol)
+
+def extract_fields(line):
+    args = line.split("||||")
+
+    tokens_arg1 = [word.strip() for word in nltk.word_tokenize(args[0])]
+    tokens_arg2 = [word.strip() for word in nltk.word_tokenize(args[1])]
+    relation = args[2].strip()
+
+    return (tokens_arg1, tokens_arg2, relation)
+
+if __name__ == '__main__':
+    train, dev, test = read_in_data()
+
+    cnt, relations, vol = load_dictionary(train)
+
     # print relation table
     f_relation_table = open("relation_table", "w")
     for relation in relations.dict:
         f_relation_table.write(relation + "\t" + str(relations.get(relation)) + "\n")
     f_relation_table.close()
     ####
-    sys.exit()
 
     verts = load_word2vec(vol)
 
     rule_index_dict, train_parse_arg1s, train_parse_arg2s, dev_parse_arg1s, dev_parse_arg2s, test_parse_arg1s, test_parse_arg2s = load_parses()
-
-    # for word in vol.dict:
-    #     print word, vol.get(word)
 
     f = h5py.File("mr.hdf5", "w")
     f['train_arg1'], f['train_arg2'], f['train_label'], f['train_parse'] = ([np.array(ele, dtype=int) for ele in gen_representation(train, vol, relations, train_parse_arg1s, train_parse_arg2s, rule_index_dict, True)])
     f['dev_arg1'], f['dev_arg2'], f['dev_label'], f['dev_parse'] = ([np.array(ele, dtype=int) for ele in gen_representation(dev, vol, relations, dev_parse_arg1s, dev_parse_arg2s, rule_index_dict)])
     f['test_arg1'], f['test_arg2'], f['test_label'], f['test_parse'] = ([np.array(ele, dtype=int) for ele in gen_representation(test, vol, relations, test_parse_arg1s, test_parse_arg2s, rule_index_dict)])
     f['embeding'] = np.array(verts)
+    
     print np.array(verts).shape
-    f_train.close()
-    f_dev.close()
-    f_test.close()
