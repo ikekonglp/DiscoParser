@@ -74,87 +74,159 @@ def parse_tokenized_sentences(parser, sentences, verbose=False):
 
 
 if __name__ == '__main__':
-    f_train = open("train_imp", "r")
-    f_dev = open("dev_imp", "r")
-    f_test = open("test_imp", "r")
+    # f_train = open("train_imp", "r")
+    # f_dev = open("dev_imp", "r")
+    # f_test = open("test_imp", "r")
 
-    train = f_train.readlines()
-    dev = f_dev.readlines()
-    test = f_test.readlines()
+    # train = f_train.readlines()
+    # dev = f_dev.readlines()
+    # test = f_test.readlines()
     
     # cnt = Counter()
     # relations = IndexDict()
     # vol = IndexDict()
 
-    os.environ['STANFORD_PARSER'] = STANFORD_DIR + "stanford-parser.jar"
-    os.environ['STANFORD_MODELS'] = STANFORD_DIR + "stanford-parser-3.3.0-models.jar"
+    # os.environ['STANFORD_PARSER'] = STANFORD_DIR + "stanford-parser.jar"
+    # os.environ['STANFORD_MODELS'] = STANFORD_DIR + "stanford-parser-3.3.0-models.jar"
 
-    parser = stanford.StanfordParser(model_path= STANFORD_DIR + "englishPCFG.ser.gz")
+    # parser = stanford.StanfordParser(model_path= STANFORD_DIR + "englishPCFG.ser.gz")
     # st = (" ".join(nltk.word_tokenize("Hello, My (name) is Melroy."))).replace("(", "-LRB-").replace(")","-RRB-")
     # sentences = parse_tokenized_sentences(parser, [st])
     # print st
     # print sentences
 
-    # sd = StanfordDependencies.get_instance(version='3.3.0')
+    sd = StanfordDependencies.get_instance(version='3.3.0')
 
     # print [sd.convert_tree(s._pprint_flat(nodesep='', parens='()', quotes=False)) for s in sentences]
 
 
-    arg1s = []
-    arg2s = []
+    # arg1s = []
+    # arg2s = []
+    # ind = 0
+    # for line in train:
+    #     ind += 1
+    #     print ind
+    #     args = line.split("||||")
+    #     arg1s.append(((" ".join( [w for w in nltk.word_tokenize(args[0].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+    #     arg2s.append(((" ".join( [w for w in nltk.word_tokenize(args[1].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+
+    # print len(arg1s), len(arg2s)
+    # train_parse_arg1s = parse_tokenized_sentences(parser, arg1s, True)
+    # train_parse_arg2s = parse_tokenized_sentences(parser, arg2s, True)
+
+    # arg1s = []
+    # arg2s = []
+    # ind = 0
+    # for line in dev:
+    #     ind += 1
+    #     print ind
+    #     args = line.split("||||")
+    #     arg1s.append(((" ".join( [w for w in nltk.word_tokenize(args[0].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+    #     arg2s.append(((" ".join( [w for w in nltk.word_tokenize(args[1].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+
+    # print len(arg1s), len(arg2s)
+    # dev_parse_arg1s = parse_tokenized_sentences(parser, arg1s, True)
+    # dev_parse_arg2s = parse_tokenized_sentences(parser, arg2s, True)
+
+    # arg1s = []
+    # arg2s = []
+    # ind = 0
+    # for line in test:
+    #     ind += 1
+    #     print ind
+    #     args = line.split("||||")
+    #     arg1s.append(((" ".join( [w for w in nltk.word_tokenize(args[0].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+    #     arg2s.append(((" ".join( [w for w in nltk.word_tokenize(args[1].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+
+    # print len(arg1s), len(arg2s)
+
+    # test_parse_arg1s = parse_tokenized_sentences(parser, arg1s, True)
+    # test_parse_arg2s = parse_tokenized_sentences(parser, arg2s, True)
+
+    # pickle.dump( train_parse_arg1s, open( "train_parse_arg1s.p", "wb" ) )
+    # pickle.dump( train_parse_arg2s, open( "train_parse_arg2s.p", "wb" ) )
+
+    # pickle.dump( dev_parse_arg1s, open( "dev_parse_arg1s.p", "wb" ) )
+    # pickle.dump( dev_parse_arg2s, open( "dev_parse_arg2s.p", "wb" ) )
+
+    # pickle.dump( test_parse_arg1s, open( "test_parse_arg1s.p", "wb" ) )
+    # pickle.dump( test_parse_arg2s, open( "test_parse_arg2s.p", "wb" ) )
+
+    dep_parse_arg1s_train = []
+    dep_parse_arg2s_train = []
+
+    train_parse_arg1s = pickle.load( open( "train_parse_arg1s.p", "rb" ) )
+    train_parse_arg2s = pickle.load( open( "train_parse_arg2s.p", "rb" ) )
+
     ind = 0
-    for line in train:
+    for s in train_parse_arg1s:
         ind += 1
         print ind
-        args = line.split("||||")
-        arg1s.append(((" ".join( [w for w in nltk.word_tokenize(args[0].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
-        arg2s.append(((" ".join( [w for w in nltk.word_tokenize(args[1].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+        tokens = sd.convert_tree(s._pprint_flat(nodesep='', parens='()', quotes=False))
+        dep_parse_arg1s_train.append(tokens)
 
-    print len(arg1s), len(arg2s)
-    train_parse_arg1s = parse_tokenized_sentences(parser, arg1s, True)
-    train_parse_arg2s = parse_tokenized_sentences(parser, arg2s, True)
-
-    arg1s = []
-    arg2s = []
     ind = 0
-    for line in dev:
+    for s in train_parse_arg2s:
         ind += 1
         print ind
-        args = line.split("||||")
-        arg1s.append(((" ".join( [w for w in nltk.word_tokenize(args[0].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
-        arg2s.append(((" ".join( [w for w in nltk.word_tokenize(args[1].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+        tokens = sd.convert_tree(s._pprint_flat(nodesep='', parens='()', quotes=False))
+        dep_parse_arg2s_train.append(tokens)
 
-    print len(arg1s), len(arg2s)
-    dev_parse_arg1s = parse_tokenized_sentences(parser, arg1s, True)
-    dev_parse_arg2s = parse_tokenized_sentences(parser, arg2s, True)
+    pickle.dump( dep_parse_arg1s_train, open( "dep_parse_arg1s_train.p", "wb" ) )
+    pickle.dump( dep_parse_arg2s_train, open( "dep_parse_arg2s_train.p", "wb" ) )
 
-    arg1s = []
-    arg2s = []
+
+    dep_parse_arg1s_dev = []
+    dep_parse_arg2s_dev = []
+
+    dev_parse_arg1s = pickle.load( open( "dev_parse_arg1s.p", "rb" ) )
+    dev_parse_arg2s = pickle.load( open( "dev_parse_arg2s.p", "rb" ) )
+
     ind = 0
-    for line in test:
+    for s in dev_parse_arg1s:
         ind += 1
         print ind
-        args = line.split("||||")
-        arg1s.append(((" ".join( [w for w in nltk.word_tokenize(args[0].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
-        arg2s.append(((" ".join( [w for w in nltk.word_tokenize(args[1].strip()) if len(w) > 0] )).strip()).replace("(", "-LRB-").replace(")","-RRB-").encode('utf-8') )
+        tokens = sd.convert_tree(s._pprint_flat(nodesep='', parens='()', quotes=False))
+        dep_parse_arg1s_dev.append(tokens)
 
-    print len(arg1s), len(arg2s)
+    ind = 0
+    for s in dev_parse_arg2s:
+        ind += 1
+        print ind
+        tokens = sd.convert_tree(s._pprint_flat(nodesep='', parens='()', quotes=False))
+        dep_parse_arg2s_dev.append(tokens)
 
-    test_parse_arg1s = parse_tokenized_sentences(parser, arg1s, True)
-    test_parse_arg2s = parse_tokenized_sentences(parser, arg2s, True)
+    pickle.dump( dep_parse_arg1s_dev, open( "dep_parse_arg1s_dev.p", "wb" ) )
+    pickle.dump( dep_parse_arg2s_dev, open( "dep_parse_arg2s_dev.p", "wb" ) )
 
-    pickle.dump( train_parse_arg1s, open( "train_parse_arg1s.p", "wb" ) )
-    pickle.dump( train_parse_arg2s, open( "train_parse_arg2s.p", "wb" ) )
+    dep_parse_arg1s_test = []
+    dep_parse_arg2s_test = []
 
-    pickle.dump( dev_parse_arg1s, open( "dev_parse_arg1s.p", "wb" ) )
-    pickle.dump( dev_parse_arg2s, open( "dev_parse_arg2s.p", "wb" ) )
+    test_parse_arg1s = pickle.load( open( "test_parse_arg1s.p", "rb" ) )
+    test_parse_arg2s = pickle.load( open( "test_parse_arg2s.p", "rb" ) )
 
-    pickle.dump( test_parse_arg1s, open( "test_parse_arg1s.p", "wb" ) )
-    pickle.dump( test_parse_arg2s, open( "test_parse_arg2s.p", "wb" ) )
+    ind = 0
+    for s in test_parse_arg1s:
+        ind += 1
+        print ind
+        tokens = sd.convert_tree(s._pprint_flat(nodesep='', parens='()', quotes=False))
+        dep_parse_arg1s_test.append(tokens)
+
+    ind = 0
+    for s in test_parse_arg2s:
+        ind += 1
+        print ind
+        tokens = sd.convert_tree(s._pprint_flat(nodesep='', parens='()', quotes=False))
+        dep_parse_arg2s_test.append(tokens)
+
+    pickle.dump( dep_parse_arg1s_test, open( "dep_parse_arg1s_test.p", "wb" ) )
+    pickle.dump( dep_parse_arg2s_test, open( "dep_parse_arg2s_test.p", "wb" ) )
 
 
-    # train_parse_arg1s = pickle.load( open( "train_parse_arg1s.p", "rb" ) )
-    # train_parse_arg2s = pickle.load( open( "train_parse_arg2s.p", "rb" ) )
+
+
+
+
     # dev_parse_arg1s = pickle.load( open( "dev_parse_arg1s.p", "rb" ) )
     # dev_parse_arg2s = pickle.load( open( "dev_parse_arg2s.p", "rb" ) )
     # test_parse_arg1s = pickle.load( open( "test_parse_arg1s.p", "rb" ) )
